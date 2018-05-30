@@ -1,0 +1,42 @@
+# Repository list to use
+#
+# Format:
+# -------
+#
+# - url: git_repository_url     # local path are allowed. Use https://login:password@url if repository is private
+#   ref: git_reference          # can be a branch, a sha1 or a tag
+#
+- url: https://github.com/IKATS/op-correlation.git
+  ref: master
+- url: https://github.com/IKATS/op-cut_y.git
+  ref: master
+- url: https://github.com/IKATS/op-decision_tree.git
+  ref: master
+- url: https://github.com/IKATS/op-decision_tree_cv.git
+  ref: master
+- url: https://github.com/IKATS/op-discretization.git
+  ref: master
+- url: https://github.com/IKATS/op-distance.git
+  ref: master
+- url: https://github.com/IKATS/op-kmeans.git
+  ref: master
+- url: https://github.com/IKATS/op-paa.git
+  ref: master
+- url: https://github.com/IKATS/op-pattern.git
+  ref: master
+- url: https://github.com/IKATS/op-quality_stats.git
+  ref: master
+- url: https://github.com/IKATS/op-resampling.git
+  ref: master
+- url: https://github.com/IKATS/op-rollmean.git
+  ref: master
+- url: https://github.com/IKATS/op-sax.git
+  ref: master
+- url: https://github.com/IKATS/op-slope.git
+  ref: master
+- url: https://github.com/IKATS/op-spark_corr.git
+  ref: master
+- url: https://github.com/IKATS/op-ts_cut.git
+  ref: master
+- url: https://github.com/IKATS/op-unwrap.git
+  ref: master
