@@ -50,6 +50,15 @@ def read_list():
         return repositories
 
 
+def extract_repo_name(url):
+    """
+    Extract the repository name from the url 
+    (commonly the last part of the URL with eventual ".git" suffix removed)
+    """
+
+    return url.split("/")[-1].replace(".git", "")
+
+
 # Read repositories list
 REPO_LIST = read_list()
 
@@ -57,10 +66,10 @@ REPO_LIST = read_list()
 def fetch_repo(repository_info):
     # Extract name from repository
     url = repository_info.get('url')
-    repo_name = url.split("/")[-1].replace(".git", "")
+    repo_name = extract_repo_name(url)
     reference = repository_info.get('ref', 'master')
     extract_to_path = "%s/%s" % (FETCH_OP_PATH, repo_name)
-    LOGGER.info("[%s] Processing ...", repo_name)
+    LOGGER.debug("[%s] Processing ...", repo_name)
 
     # If repo already exists, check if there is any change
     try:
@@ -75,6 +84,10 @@ def fetch_repo(repository_info):
                         repo_name, str(repo.head.commit), remote_ref)
             repo.remotes[0].fetch()
             repo.head.reference = repo.commit(reference)
+
+    except git.exc.BadName:
+        LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
+            repo_name, reference))
     except git.exc.NoSuchPathError:
         LOGGER.info("[%s] New operator detected", repo_name)
 
@@ -95,8 +108,7 @@ def fetch_repo(repository_info):
         if pattern.match(file_path):
             break
     else:
-        LOGGER.warning(
-            "[%s] No catalog file found. (url: %s)" % (repo_name, url))
+        LOGGER.warning("[%s] No catalog file found. (url: %s)", repo_name, url)
 
     # Copy sources to build path
     ignored_patterns = [
@@ -125,7 +137,25 @@ with Pool(4) as p:
     with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
         yaml.dump(results, output_stream, default_flow_style=False)
 
-# Display the content
-with open("%s/versions.yml" % OP_PATH, 'r') as f:
-    for line in f:
-        LOGGER.debug(line.rstrip('\n'))
+    # Remove the unneeded repositories
+    repo_list_build = [extract_repo_name(x["url"])
+                       for x in results if x is not None]
+    repo_list_build.append("versions.yml")
+    for file_path in os.listdir(FETCH_OP_PATH):
+        if file_path not in repo_list_build:
+            shutil.rmtree("%s/%s" % (OP_PATH, file_path), ignore_errors=True)
+            shutil.rmtree("%s/%s" %
+                          (FETCH_OP_PATH, file_path), ignore_errors=True)
+            LOGGER.info("[%s] removed (unused for this run)", file_path)
+
+
+def show_summary():
+    """
+    Display summary as debug
+    """
+    with open("%s/versions.yml" % OP_PATH, 'r') as f:
+        for line in f:
+            LOGGER.debug(line.rstrip('\n'))
+
+
+show_summary()
