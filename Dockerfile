@@ -10,7 +10,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Adding assets
-RUN mkdir /app
+RUN mkdir -p /app/op /app/raw-op /app/local
 ADD assets/main.py /app/
 ADD assets/repo-list.yml /app/
 
