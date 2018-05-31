@@ -6,7 +6,7 @@ import os
 import shutil
 import re
 import logging
-
+from multiprocessing import Pool
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
@@ -49,6 +49,7 @@ def fetch_repo(repository_info):
     # Extract name from repository
     url = repository_info.get('url')
     repo_name = url.split("/")[-1].replace(".git", "")
+    LOGGER.info("Fetching %s" % repo_name)
     # Clone repository
     try:
         repo = git.Repo.clone_from(
@@ -57,7 +58,7 @@ def fetch_repo(repository_info):
             branch=repository_info.get('ref', 'master'))
     except git.exc.GitCommandError as ex:
         LOGGER.warning("Impossible to clone %s" % url, ex)
-        return "error"
+        return
 
     # Consistency check
     # Check if catalog definition is present in repository
@@ -66,7 +67,8 @@ def fetch_repo(repository_info):
         if pattern.match(file_path):
             break
     else:
-        LOGGER.warning("No catalog file found for [%s] (url: %s )" % (repo_name, url))
+        LOGGER.warning(
+            "No catalog file found for [%s] (url: %s)" % (repo_name, url))
 
     # Copy sources to build path
     ignored_patterns = [
@@ -80,17 +82,17 @@ def fetch_repo(repository_info):
         "catalog_def*.json"
     ]
     ignored = shutil.ignore_patterns(*ignored_patterns)
-    shutil.copytree("%s/%s" % (FETCH_OP_PATH, repo_name), "%s/%s" % (OP_PATH, repo_name), ignore=ignored)
+    shutil.copytree("%s/%s" % (FETCH_OP_PATH, repo_name), "%s/%s" %
+                    (OP_PATH, repo_name), ignore=ignored)
 
-    return str(repo.commit())
+    repository_info["commit"] = str(repo.commit())
+    return repository_info
 
 
 # Fetch repositories
-for i, repo_info in enumerate(REPO_LIST):
-    LOGGER.info("%d/%d (%.2f%%) Fetching %s" % (i + 1, len(REPO_LIST), (100*(i + 1)/ len(REPO_LIST)), repo_info.get('url').split("/")[-1].replace(".git", "")))
-    repo_info["commit"] = fetch_repo(repo_info)
+with Pool(4) as p:
+    results = p.map(fetch_repo, REPO_LIST)
 
-# Create Operators Version manifest
-with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
-    yaml.dump(REPO_LIST, output_stream, default_flow_style=False)
-
+    # Create Operators Version manifest
+    with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
+        yaml.dump(results, output_stream, default_flow_style=False)
