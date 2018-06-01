@@ -10,7 +10,7 @@ RUN apt-get update \
  && rm -rf /var/lib/apt/lists/*
 
 # Adding assets
-RUN mkdir -p /app/op /app/raw-op /app/local
+RUN mkdir -p /app/op /app/fetch-op /app/local
 ADD assets/main.py /app/
 ADD assets/repo-list.yml /app/
 
@@ -19,4 +19,4 @@ VOLUME /app/local
 
 # Starting component
 WORKDIR /app
-ENTRYPOINT python3 ./main.py
+CMD python3 ./main.py

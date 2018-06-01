@@ -19,14 +19,8 @@ STDOUT_HANDLER.setLevel(logging.DEBUG)
 STDOUT_HANDLER.setFormatter(formatter)
 LOGGER.addHandler(STDOUT_HANDLER)
 
-# Create another handler that will redirect Warning entries to STDERR
-STDERR_HANDLER = logging.StreamHandler(sys.stderr)
-STDERR_HANDLER.setLevel(logging.WARNING)
-STDERR_HANDLER.setFormatter(formatter)
-LOGGER.addHandler(STDERR_HANDLER)
-
 # Path to fetch operators repositories
-FETCH_OP_PATH = "raw-op"
+FETCH_OP_PATH = "fetch-op"
 
 # Path to prepared operators
 OP_PATH = "op"
@@ -52,11 +46,30 @@ def read_list():
 
 def extract_repo_name(url):
     """
-    Extract the repository name from the url 
-    (commonly the last part of the URL with eventual ".git" suffix removed)
+    Extract the repository name from the url
+    (commonly the last part of the URL without ".git" suffix and "op-" prefix)
     """
 
-    return url.split("/")[-1].replace(".git", "")
+    return url.split("/")[-1].replace(".git", "").replace("op-", "")
+
+
+def check_op_validity(op_name):
+    """
+    Check operator repository validity
+    """
+
+    # Check if catalog definition is present in repository
+    pattern = re.compile("catalog_def(_[0-9]{,2})?.json")
+    for file_path in os.listdir("%s/op-%s" % (FETCH_OP_PATH, op_name)):
+        if pattern.match(file_path):
+            break
+    else:
+        LOGGER.warning("[%s] No catalog file found.", op_name)
+
+    # Check if subfolder containing operator exists
+    if not os.path.isdir("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, op_name)):
+        raise Exception("[%s] sub-folder op-%s/%s not found",
+                        op_name, op_name, op_name)
 
 
 # Read repositories list
@@ -66,10 +79,10 @@ REPO_LIST = read_list()
 def fetch_repo(repository_info):
     # Extract name from repository
     url = repository_info.get('url')
-    repo_name = extract_repo_name(url)
+    op_name = extract_repo_name(url)
     reference = repository_info.get('ref', 'master')
-    extract_to_path = "%s/%s" % (FETCH_OP_PATH, repo_name)
-    LOGGER.debug("[%s] Processing ...", repo_name)
+    extract_to_path = "%s/op-%s" % (FETCH_OP_PATH, op_name)
+    LOGGER.debug("[%s] Processing ...", op_name)
 
     # If repo already exists, check if there is any change
     try:
@@ -77,19 +90,19 @@ def fetch_repo(repository_info):
         remote_ref = git_remote_ref(url, reference)
         if str(repo.head.commit) == remote_ref:
             # No change since the last run
-            LOGGER.info("[%s] No changes detected" % repo_name)
+            LOGGER.info("[%s] No changes detected" % op_name)
         else:
             # Update HEAD to required reference
             LOGGER.info("[%s] Change detected (%s -> %s)",
-                        repo_name, str(repo.head.commit), remote_ref)
+                        op_name, str(repo.head.commit), remote_ref)
             repo.remotes[0].fetch()
             repo.head.reference = repo.commit(reference)
 
     except git.exc.BadName:
         LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
-            repo_name, reference))
+            op_name, reference))
     except git.exc.NoSuchPathError:
-        LOGGER.info("[%s] New operator detected", repo_name)
+        LOGGER.info("[%s] New operator detected", op_name)
 
         # Clone repository
         try:
@@ -102,13 +115,10 @@ def fetch_repo(repository_info):
             return
 
     # Consistency check
-    # Check if catalog definition is present in repository
-    pattern = re.compile("catalog_def(_[0-9]{,2})?.json")
-    for file_path in os.listdir("%s/%s" % (FETCH_OP_PATH, repo_name)):
-        if pattern.match(file_path):
-            break
-    else:
-        LOGGER.warning("[%s] No catalog file found. (url: %s)", repo_name, url)
+    try:
+        check_op_validity(op_name)
+    except Exception:
+        return
 
     # Copy sources to build path
     ignored_patterns = [
@@ -122,8 +132,20 @@ def fetch_repo(repository_info):
         "catalog_def*.json"
     ]
     ignored = shutil.ignore_patterns(*ignored_patterns)
-    shutil.copytree("%s/%s" % (FETCH_OP_PATH, repo_name), "%s/%s" %
-                    (OP_PATH, repo_name), ignore=ignored)
+    shutil.rmtree("%s/%s" % (OP_PATH, op_name),
+                  ignore_errors=True)
+    shutil.copytree("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, op_name),
+                    "%s/%s" % (OP_PATH, op_name),
+                    ignore=ignored)
+    if os.path.exists("%s/op-%s/LICENSE" % (FETCH_OP_PATH, op_name)):
+        shutil.copy("%s/op-%s/LICENSE" % (FETCH_OP_PATH, op_name),
+                    "%s/%s/" % (OP_PATH, op_name))
+    if os.path.exists("%s/op-%s/README.md" % (FETCH_OP_PATH, op_name)):
+        shutil.copy("%s/op-%s/README.md" % (FETCH_OP_PATH, op_name),
+                    "%s/%s/" % (OP_PATH, op_name))
+    if os.path.exists("%s/op-%s/*.json" % (FETCH_OP_PATH, op_name)):
+        shutil.copy("%s/op-%s/*.json" % (FETCH_OP_PATH, op_name),
+                    "%s/%s/" % (OP_PATH, op_name))
 
     repository_info["commit"] = str(repo.commit())
     return repository_info
@@ -141,12 +163,14 @@ with Pool(4) as p:
     repo_list_build = [extract_repo_name(x["url"])
                        for x in results if x is not None]
     repo_list_build.append("versions.yml")
-    for file_path in os.listdir(FETCH_OP_PATH):
-        if file_path not in repo_list_build:
-            shutil.rmtree("%s/%s" % (OP_PATH, file_path), ignore_errors=True)
-            shutil.rmtree("%s/%s" %
-                          (FETCH_OP_PATH, file_path), ignore_errors=True)
-            LOGGER.info("[%s] removed (unused for this run)", file_path)
+    for operator_path in os.listdir(FETCH_OP_PATH):
+        operator_name = operator_path.replace('op-', '')
+        if operator_name not in repo_list_build:
+            shutil.rmtree("%s/%s" % (OP_PATH, operator_name),
+                          ignore_errors=True)
+            shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
+                          ignore_errors=True)
+            LOGGER.info("[%s] removed (unused for this run)", operator_name)
 
 
 def show_summary():

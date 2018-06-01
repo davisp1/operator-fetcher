@@ -14,17 +14,18 @@ This operation consists in several parts :
 To build the image
 
 ```bash
-docker build . -t operator-fetcher:latest
+docker build . -t operator-fetcher
 ```
 
 To run the container
 
 ```bash
 docker run -it \
+   -v /path/to/cached/operators:/app/fetch-op \
    -v /path/to/shared/operators:/app/op \
    -v /path/to/local/operators:/app/local \
    -v /path/to/custom/repo-list.yml:/app/repo-list.yml \
-   operator-fetcher:latest
+   operator-fetcher
 ```
 
 ## Content of repo-list.yml
@@ -48,9 +49,10 @@ It is a [YAML](http://yaml.org/) file describing a list of the following informa
 
 ## Volumes
 
-3 volumes are used :
+4 volumes are used :
 
-- `/app/op`: (*mandatory*) the path to the fetched and prepared operators to be provided to other services
+- `/app/fetch-op`: (*optional*) the path to the fetched operators to be prepared. Mounting it allows faster startup (act as a *cache*)
+- `/app/op`: (*mandatory*) the path to the  prepared operators to be provided to other services
 - `/app/repo-list.yml` : (*optional*) to set an external repository list different from the official IKATS operators
 - `/app/local`: (*optional*) if you plan to use local operator, mount your git workspace here.
 
