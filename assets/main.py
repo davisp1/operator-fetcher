@@ -82,36 +82,54 @@ def fetch_repo(repository_info):
     op_name = extract_repo_name(url)
     reference = repository_info.get('ref', 'master')
     extract_to_path = "%s/op-%s" % (FETCH_OP_PATH, op_name)
-    LOGGER.debug("[%s] Processing ...", op_name)
+    commit_ref = "no_info"
+    LOGGER.debug("\n[%s] Processing ...", op_name)
 
-    # If repo already exists, check if there is any change
-    try:
-        repo = git.Repo(extract_to_path)
-        remote_ref = git_remote_ref(url, reference)
-        if str(repo.head.commit) == remote_ref:
-            # No change since the last run
-            LOGGER.info("[%s] No changes detected" % op_name)
-        else:
-            # Update HEAD to required reference
-            LOGGER.info("[%s] Change detected (%s -> %s)",
-                        op_name, str(repo.head.commit), remote_ref)
-            repo.remotes[0].fetch()
-            repo.head.reference = repo.commit(reference)
-
-    except git.exc.BadName:
-        LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
-            op_name, reference))
-    except git.exc.NoSuchPathError:
-        LOGGER.info("[%s] New operator detected", op_name)
-
-        # Clone repository
+    if url[0] == "/":
+        # Repository is a local path
         try:
-            repo = git.Repo.clone_from(
-                url=url,
-                to_path=extract_to_path,
-                branch=reference)
-        except git.exc.GitCommandError as ex:
-            LOGGER.warning("[%s] Impossible to clone: \n%s", url, ex)
+            shutil.rmtree("%s/%s" % (FETCH_OP_PATH, op_name),
+                          ignore_errors=True)
+            shutil.copytree(url, "%s/op-%s" % (FETCH_OP_PATH, op_name))
+            commit_ref = "local_changes"
+        except Exception as e:
+            LOGGER.warning(
+                "[%s] Can't copy from path %s.\n%s", op_name, url, e)
+    else:
+        # Repository is a url path
+
+        # If repo already exists, check if there is any change
+        try:
+            repo = git.Repo(extract_to_path)
+            remote_ref = git_remote_ref(url, reference)
+            if str(repo.head.commit) == remote_ref:
+                # No change since the last run
+                LOGGER.info("[%s] No changes detected" % op_name)
+            else:
+                # Update HEAD to required reference
+                LOGGER.info("[%s] Change detected (%s -> %s)",
+                            op_name, str(repo.head.commit), remote_ref)
+                repo.remotes[0].fetch()
+                repo.head.reference = repo.commit(reference)
+
+        except git.exc.BadName:
+            LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
+                op_name, reference))
+        except git.exc.NoSuchPathError:
+            LOGGER.info("[%s] New operator detected", op_name)
+
+            # Clone repository
+            try:
+                repo = git.Repo.clone_from(
+                    url=url,
+                    to_path=extract_to_path,
+                    branch=reference)
+                commit_ref = str(repo.commit())
+            except Exception as ex:
+                LOGGER.warning("[%s] Impossible to clone: \n%s", url, ex)
+                return
+        except Exception as ex:
+            LOGGER.warning("[%s] Unknown exception: \n%s", url, ex)
             return
 
     # Consistency check
@@ -147,7 +165,7 @@ def fetch_repo(repository_info):
         shutil.copy("%s/op-%s/*.json" % (FETCH_OP_PATH, op_name),
                     "%s/%s/" % (OP_PATH, op_name))
 
-    repository_info["commit"] = str(repo.commit())
+    repository_info["commit"] = commit_ref
     return repository_info
 
 
