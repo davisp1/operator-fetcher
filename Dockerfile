@@ -20,4 +20,3 @@ VOLUME /app/local
 # Starting component
 WORKDIR /app
 CMD python3 ./main.py
-#CMD ls -l /app/local/op

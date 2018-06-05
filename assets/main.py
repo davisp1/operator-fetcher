@@ -169,26 +169,29 @@ def fetch_repo(repository_info):
     return repository_info
 
 
-# Fetch repositories
+results = []
 with Pool(4) as p:
+    # Fetch repositories
     results = p.map(fetch_repo, REPO_LIST)
 
-    # Create Operators Version manifest
-    with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
-        yaml.dump(results, output_stream, default_flow_style=False)
+# Strip failed jobs
+results = [x for x in results if x is not None]
 
-    # Remove the unneeded repositories
-    repo_list_build = [extract_repo_name(x["url"])
-                       for x in results if x is not None]
-    repo_list_build.append("versions.yml")
-    for operator_path in os.listdir(FETCH_OP_PATH):
-        operator_name = operator_path.replace('op-', '')
-        if operator_name not in repo_list_build:
-            shutil.rmtree("%s/%s" % (OP_PATH, operator_name),
-                          ignore_errors=True)
-            shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
-                          ignore_errors=True)
-            LOGGER.info("[%s] removed (unused for this run)", operator_name)
+# Create Operators Version manifest
+with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
+    yaml.dump(results, output_stream, default_flow_style=False)
+
+# Remove the unneeded repositories
+repo_list_build = [extract_repo_name(x["url"]) for x in results]
+repo_list_build.append("versions.yml")
+for operator_path in os.listdir(FETCH_OP_PATH):
+    operator_name = operator_path.replace('op-', '')
+    if operator_name not in repo_list_build:
+        shutil.rmtree("%s/%s" % (OP_PATH, operator_name),
+                      ignore_errors=True)
+        shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
+                      ignore_errors=True)
+        LOGGER.info("[%s] removed (unused for this run)", operator_name)
 
 
 def show_summary():
