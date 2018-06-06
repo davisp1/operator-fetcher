@@ -16,8 +16,6 @@
   ref: master
 - url: https://github.com/IKATS/op-discretization.git
   ref: master
-- url: https://github.com/IKATS/op-distance.git
-  ref: master
 - url: https://github.com/IKATS/op-kmeans.git
   ref: master
 - url: https://github.com/IKATS/op-paa.git
