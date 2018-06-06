@@ -17,6 +17,9 @@ ADD assets/repo-list.yml /app/
 VOLUME /app/op
 VOLUME /app/local
 
+# Do git clone no matter the validity of the certificate
+ENV GIT_SSL_NO_VERIFY true
+
 # Starting component
 WORKDIR /app
 CMD python3 ./main.py
