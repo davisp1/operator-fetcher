@@ -62,6 +62,7 @@ It is a [YAML](http://yaml.org/) file describing a list of the following informa
 The repository is located on host machine at `/home/developer/op-mysterious-operator`
 
 - Mount `/home/developer/op-mysterious-operator` to `/app/local/op-mysterious-operator`
+#Review#173032 il manque un mot (ou il y en a en trop) dans la phrase suivante
 - In `repo-list.yml` file, set the `url` field of the to `/app/local/op-mysterious-operator`
 
 ## Common errors
@@ -72,9 +73,9 @@ The repository is located on host machine at `/home/developer/op-mysterious-oper
 WARNING:No catalog file found for [op-xxxxx] (url: https://xxxxx )
 ```
 
-This message appear when there is no catalog definition file in folder or if it doesn't match the regexp pattern : `catalog_def(_[0-9]{,2})?.json`.
+This message appears when there is no catalog definition file in folder or if it doesn't match the regexp pattern : `catalog_def(_[0-9]{,2})?.json`.
 
-This is just a warning but the operator won't be available in IKATS. 
+This warning means that the operator won't be available in IKATS. 
 
 ### Can't clone
 

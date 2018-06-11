@@ -3,7 +3,6 @@
 import yaml
 import git
 import os
-import sys
 import shutil
 import re
 import logging
@@ -83,7 +82,7 @@ def fetch_repo(repository_info):
     reference = repository_info.get('ref', 'master')
     extract_to_path = "%s/op-%s" % (FETCH_OP_PATH, op_name)
     commit_ref = "no_info"
-    LOGGER.debug("\n[%s] Processing ...", op_name)
+    LOGGER.debug("[%s] Processing ...", op_name)
 
     if url[0] == "/":
         # Repository is a local path
