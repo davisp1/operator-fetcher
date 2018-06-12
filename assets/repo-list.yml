@@ -32,9 +32,6 @@
   ref: master
 - url: https://github.com/IKATS/op-slope.git
   ref: master
-#Review#173032 : algo spark_corr non utilisé à supprimer
-- url: https://github.com/IKATS/op-spark_corr.git
-  ref: master
 - url: https://github.com/IKATS/op-ts_cut.git
   ref: master
 - url: https://github.com/IKATS/op-unwrap.git

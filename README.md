@@ -62,8 +62,7 @@ It is a [YAML](http://yaml.org/) file describing a list of the following informa
 The repository is located on host machine at `/home/developer/op-mysterious-operator`
 
 - Mount `/home/developer/op-mysterious-operator` to `/app/local/op-mysterious-operator`
-#Review#173032 il manque un mot (ou il y en a en trop) dans la phrase suivante
-- In `repo-list.yml` file, set the `url` field of the to `/app/local/op-mysterious-operator`
+- In `repo-list.yml` file, set the `url` field to `/app/local/op-mysterious-operator`
 
 ## Common errors
 
