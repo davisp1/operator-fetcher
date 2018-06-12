@@ -16,8 +16,6 @@
   ref: master
 - url: https://github.com/IKATS/op-discretization.git
   ref: master
-- url: https://github.com/IKATS/op-distance.git
-  ref: master
 - url: https://github.com/IKATS/op-kmeans.git
   ref: master
 - url: https://github.com/IKATS/op-paa.git
@@ -33,8 +31,6 @@
 - url: https://github.com/IKATS/op-sax.git
   ref: master
 - url: https://github.com/IKATS/op-slope.git
-  ref: master
-- url: https://github.com/IKATS/op-spark_corr.git
   ref: master
 - url: https://github.com/IKATS/op-ts_cut.git
   ref: master
