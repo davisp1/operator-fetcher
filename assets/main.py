@@ -6,6 +6,7 @@ import os
 import shutil
 import re
 import logging
+import catalog
 from multiprocessing import Pool
 
 LOGGER = logging.getLogger(__name__)
@@ -191,6 +192,15 @@ for operator_path in os.listdir(FETCH_OP_PATH):
         shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
                       ignore_errors=True)
         LOGGER.info("[%s] removed (unused for this run)", operator_name)
+
+op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
+catalog.delete_catalog_postgres()
+try:
+    res_catalog = list(map(catalog.process_catalog, op_list))
+    LOGGER.info(res_catalog)
+except Exception as ex:
+    pass
+
 
 
 def show_summary():
