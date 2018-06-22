@@ -5,6 +5,7 @@ import re
 import logging
 import json
 import psycopg2
+import yaml
 from string import Template
 
 LOGGER = logging.getLogger(__name__)
@@ -22,18 +23,6 @@ FETCH_OP_PATH = "fetch-op"
 
 # Path to prepared operators
 OP_PATH = "op"
-
-# Families definition
-FAMILIES = [
-    ('Data_Exploration', 'Functions exploring the data: searches, highlights some elements, ...', 'Data Exploration'),
-    ('Stats__TS_Correlation_Computation', 'Set of correlation functions, applied on Time series', 'Stats/Ts Correlation Computation'),
-    ('Stats__TS_Stats', 'Set of functions about statistics features on Time series', 'Stats/Statistics On Ts'),
-    ('Preprocessing_TS__Reduction', 'Set of pre-processing functions which reduce information of Time series', 'Pre-Processing On Ts/Reduction'),
-    ('Preprocessing_TS__Cleaning', 'Set of pre-processing functions which are cleaning the information of Time series.', 'Pre-Processing On Ts/Cleaning'),
-    ('Preprocessing_TS__Transforming', 'Set of pre-processing functions which are transforming the Time series: not classified as cleaning, or reduction functions.', 'Pre-Processing On Ts/Transforming'),
-    ('Data_Modeling__Supervised_Learning', 'Supervised learning', 'Data Modeling/Supervised Learning'),
-    ('Data_Modeling__Unsupervised_Learning', 'Collection of Unsupervised learning agorithms', 'Data Modeling/Unsupervised Learning'),
-    ('Undefined', 'Family for algorithms with wrong or undefined family', 'Undefined')]
 
 insert_family = Template("""
 INSERT INTO catalogue_functionalfamilydao
@@ -90,6 +79,19 @@ VALUES
 """)
 
 
+def read_list():
+    """
+    Reads the repo-list.yml file to get the url to operators
+    :return: the dict containing the yaml information
+    """
+    with open("families.yml", 'r') as input_stream:
+        families = yaml.load(input_stream)
+        return families
+
+
+# Read families list
+FAMILIES = read_list()
+
 def extract_catalog(op_name):
     """
     Retrieves list of catalog_def for given operator
@@ -111,7 +113,7 @@ def format_catalog(catalog):
     Add missing optional keys with default values in catalog
     """
     # create optional keys with default values if missing
-    if 'family' not in catalog or catalog['family'] not in [x[0] for x in FAMILIES]:
+    if 'family' not in catalog or catalog['family'] not in [x.get('name') for x in FAMILIES]:
         catalog['family'] = 'Uncategorized'
     if 'label' not in catalog:
         catalog['label'] = catalog['name']
@@ -216,7 +218,7 @@ def populate_catalog_families():
     Insert families in catalog
     """
     for family in FAMILIES:
-        sql = insert_family.substitute(name=family[0], description=family[1], label=family[2])
+        sql = insert_family.substitute(name=family.get('name'), description=family.get('desc'), label=family.get('label'))
         request_to_postgres(sql)
 
 def request_to_postgres(request):

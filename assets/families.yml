@@ -1,0 +1,36 @@
+# Families list to use
+#
+# Format:
+# -------
+#
+# - name: family name
+#   desc: description of the family
+#   label: string displayed for the family. Tree format : family/sub-family
+#
+- name: "Data_Exploration"
+  desc: "Functions exploring the data: searches, highlights some elements, ..."
+  label: "Data Exploration"
+- name: "Stats__TS_Correlation_Computation"
+  desc: "Set of correlation functions, applied on Time series"
+  label: "Stats/Ts Correlation Computation"
+- name: "Stats__TS_Stats"
+  desc: "Set of functions about statistics features on Time series"
+  label: "Stats/Statistics On Ts"
+- name: "Preprocessing_TS__Reduction"
+  desc: "Set of pre-processing functions which reduce information of Time series"
+  label: "Pre-Processing On Ts/Reduction"
+- name: "Preprocessing_TS__Cleaning"
+  desc: "Set of pre-processing functions which are cleaning the information of Time series."
+  label: "Pre-Processing On Ts/Cleaning"
+- name: "Preprocessing_TS__Transforming"
+  desc: "Set of pre-processing functions which are transforming the Time series: not classified as cleaning, or reduction functions."
+  label: "Pre-Processing On Ts/Transforming"
+- name: "Data_Modeling__Supervised_Learning"
+  desc: "Supervised learning"
+  label: "Data Modeling/Supervised Learning"
+- name: "Data_Modeling__Unsupervised_Learning"
+  desc: "Collection of Unsupervised learning agorithms"
+  label: "Data Modeling/Unsupervised Learning"
+- name: "Uncategorized"
+  desc: "Family for algorithms with wrong or undefined family"
+  label: "Uncategorized"
