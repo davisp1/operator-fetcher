@@ -6,8 +6,10 @@ import os
 import shutil
 import re
 import logging
-import catalog
+import importlib
 from multiprocessing import Pool
+
+catalog = importlib.import_module('catalog')
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
