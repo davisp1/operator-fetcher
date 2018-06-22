@@ -193,14 +193,15 @@ for operator_path in os.listdir(FETCH_OP_PATH):
                       ignore_errors=True)
         LOGGER.info("[%s] removed (unused for this run)", operator_name)
 
+# Processing catalog for operators
 op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
 catalog.delete_catalog_postgres()
+catalog.populate_catalog_families()
 try:
-    res_catalog = list(map(catalog.process_catalog, op_list))
+    res_catalog = list(map(catalog.process_operator_catalog, op_list))
     LOGGER.info(res_catalog)
 except Exception as ex:
     pass
-
 
 
 def show_summary():

@@ -17,6 +17,7 @@ RUN apt-get update \
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local
 ADD assets/main.py /app/
+ADD assets/catalog.py /app/
 ADD assets/repo-list.yml /app/
 
 VOLUME /app/op

@@ -24,6 +24,25 @@ FETCH_OP_PATH = "fetch-op"
 # Path to prepared operators
 OP_PATH = "op"
 
+# Families definition
+FAMILIES = [
+    ('Data_Exploration', 'Functions exploring the data: searches, highlights some elements, ...', 'Data Exploration'),
+    ('Stats__TS_Correlation_Computation', 'Set of correlation functions, applied on Time series', 'Stats/Ts Correlation Computation'),
+    ('Stats__TS_Stats', 'Set of functions about statistics features on Time series', 'Stats/Statistics On Ts'),
+    ('Preprocessing_TS__Reduction', 'Set of pre-processing functions which reduce information of Time series', 'Pre-Processing On Ts/Reduction'),
+    ('Preprocessing_TS__Cleaning', 'Set of pre-processing functions which are cleaning the information of Time series.', 'Pre-Processing On Ts/Cleaning'),
+    ('Preprocessing_TS__Transforming', 'Set of pre-processing functions which are transforming the Time series: not classified as cleaning, or reduction functions.', 'Pre-Processing On Ts/Transforming'),
+    ('Data_Modeling__Supervised_Learning', 'Supervised learning', 'Data Modeling/Supervised Learning'),
+    ('Data_Modeling__Unsupervised_Learning', 'Collection of Unsupervised learning agorithms', 'Data Modeling/Unsupervised Learning'),
+    ('Undefined', 'Family for algorithms with wrong or undefined family', 'Undefined')]
+
+insert_family = Template("""
+INSERT INTO catalogue_functionalfamilydao
+("name", "desc", "label")
+VALUES
+  ('$name', '$description', '$label');
+""")
+
 algorithm = Template("""
 INSERT INTO catalogue_algorithmdao
 ("name", "label", "desc", "family_id")
@@ -74,7 +93,7 @@ VALUES
 
 def extract_catalog(op_name):
     """
-    Check operator repository validity
+    Retrieves list of catalog_def for given operator
     """
     catalog_list = []
 
@@ -88,24 +107,13 @@ def extract_catalog(op_name):
     return catalog_list
 
 
-def format_item(item):
-    # create optional keys with default values if missing
-    if 'label' not in item:
-        item['label'] = item['name']
-    else:
-        # Double quotes in description to agree sql requests
-        item['label'] = item.get('label').replace("'", "''")
-    if 'description' not in item:
-        item['description'] = item['name']
-    else:
-        # Double quotes in description to agree sql requests
-        item['description'] = item.get('description').replace("'", "''")
-
-
 def format_catalog(catalog):
+    """
+    Add missing optional keys with default values in catalog
+    """
     # create optional keys with default values if missing
-    if 'family' not in catalog:
-        catalog['family'] = 'undefined'
+    if 'family' not in catalog or catalog['family'] not in [x[0] for x in FAMILIES]:
+        catalog['family'] = 'Uncategorized'
     if 'label' not in catalog:
         catalog['label'] = catalog['name']
     if 'description' not in catalog:
@@ -113,6 +121,19 @@ def format_catalog(catalog):
     else:
         # Double quotes in description to agree sql requests
         catalog['description'] = catalog.get('description').replace("'", "''")
+
+    def format_item(item):
+        # create optional keys with default values if missing
+        if 'label' not in item:
+            item['label'] = item['name']
+        else:
+            # Double quotes in description to agree sql requests
+            item['label'] = item.get('label').replace("'", "''")
+        if 'description' not in item:
+            item['description'] = item['name']
+        else:
+            # Double quotes in description to agree sql requests
+            item['description'] = item.get('description').replace("'", "''")
 
     if 'inputs' in catalog:
         for input in catalog.get('inputs'):
@@ -140,9 +161,10 @@ def format_catalog(catalog):
 
 def catalog_json_to_SQL(catalog):
     """
-    convert algorithm catalog definition from json to sql request
+    Convert algorithm catalog definition from json to sql request
     """
     sql = algorithm.substitute(catalog)
+    catalog['entry_point'] = '{}.{}'.format('ikats.algo', catalog.get('entry_point'))
     sql += implementation.substitute(catalog, visibility=catalog.get('visibility') if 'visibility' in catalog else True)
     index_profileitem = 0
     if 'inputs' in catalog:
@@ -179,35 +201,45 @@ def catalog_json_to_SQL(catalog):
 
 
 def delete_catalog_postgres():
+    """
+    Delete data from catalogue databases
+    """
     CATALOG_DATABASES_LIST = [
         'catalogue_implementationdao_input_desc_items', 'catalogue_implementationdao_output_desc_items',
         'catalogue_profileitemdao',
-        'catalogue_implementationdao', 'catalogue_algorithmdao']  # 'catalogue_functionalfamilydao'
+        'catalogue_implementationdao', 'catalogue_algorithmdao', 'catalogue_functionalfamilydao']
     for db in CATALOG_DATABASES_LIST:
         request_to_postgres("DELETE from %s" % db)
-    return
 
+
+def populate_catalog_families():
+    """
+    Insert families in catalog
+    """
+    for family in FAMILIES:
+        sql = insert_family.substitute(name=family[0], description=family[1], label=family[2])
+        request_to_postgres(sql)
 
 def request_to_postgres(request):
     """
-    request postgresql with sql requests
+    request postgresql with sql requests as a string
     """
     conn_string = "host='127.0.0.1' dbname='ikats' user='ikats' password='ikats' port='5432'"
+    connection = None
     try:
         connection = psycopg2.connect(conn_string)
-        connection.autocommit = True
         cursor = connection.cursor()
         cursor.execute(request)
-    except Exception as e:
-        LOGGER.error("Error when attempting to connect to database")
-    finally:
+        connection.commit()
         cursor.close()
-        connection.close()
+    except Exception as error:
+        LOGGER.error(error)
+    finally:
+        if connection is not None:
+            connection.close()
 
-    return
 
-
-def process_catalog(repo):
+def process_operator_catalog(repo):
     """
     Processing the catalog for a given operator
     """
@@ -224,5 +256,3 @@ def process_catalog(repo):
 
             # postgresql request
             request_to_postgres(sql)
-
-    return
