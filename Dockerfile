@@ -18,7 +18,7 @@ RUN apt-get update \
  && easy_install3 pip \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
-RUN pip3 install psycopg2
+RUN pip3 install psycopg2-binary
 
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local

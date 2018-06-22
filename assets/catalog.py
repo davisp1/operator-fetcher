@@ -189,7 +189,7 @@ def catalog_json_to_SQL(catalog):
     if 'parameters' in catalog:
         for parameter in catalog.get('parameters'):
             sql += profile_item_PARAM.substitute(parameter,
-                                                 name='{}_{}_{}'.format('output_', catalog.get('name'),
+                                                 name='{}_{}_{}'.format('parameter_', catalog.get('name'),
                                                                         parameter.get('name')),
                                                  direction=0,
                                                  dtype=0,
@@ -199,7 +199,7 @@ def catalog_json_to_SQL(catalog):
     if 'outputs' in catalog:
         for output in catalog.get('outputs'):
             sql += profile_item_OUT.substitute(output,
-                                               name='{}_{}_{}'.format('parameter_', catalog.get('name'),
+                                               name='{}_{}_{}'.format('output_', catalog.get('name'),
                                                                       output.get('name')),
                                                direction=1,
                                                dtype=1,
