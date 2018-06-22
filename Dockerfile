@@ -12,7 +12,13 @@ RUN apt-get update \
     python3 \
     python3-git \
     python3-yaml \
+    python3-pip \
+    python3-dev \
+    build-essential \
+ && easy_install3 pip \
+ && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
+RUN pip3 install psycopg2
 
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local

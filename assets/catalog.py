@@ -5,7 +5,6 @@ import re
 import logging
 import json
 import psycopg2
-import traceback
 from string import Template
 
 LOGGER = logging.getLogger(__name__)
