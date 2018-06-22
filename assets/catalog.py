@@ -24,6 +24,14 @@ FETCH_OP_PATH = "fetch-op"
 # Path to prepared operators
 OP_PATH = "op"
 
+# postgres database connection infos
+DB = {'NAME': 'ikats',
+      'USER': 'ikats',
+      'PASSWORD': 'ikats',
+      'HOST': os.environ['DB_HOST'],
+      'PORT': int(os.environ['DB_PORT'])
+      }
+
 insert_family = Template("""
 INSERT INTO catalogue_functionalfamilydao
 ("name", "desc", "label")
@@ -91,6 +99,7 @@ def read_list():
 
 # Read families list
 FAMILIES = read_list()
+
 
 def extract_catalog(op_name):
     """
@@ -218,14 +227,17 @@ def populate_catalog_families():
     Insert families in catalog
     """
     for family in FAMILIES:
-        sql = insert_family.substitute(name=family.get('name'), description=family.get('desc'), label=family.get('label'))
+        sql = insert_family.substitute(name=family.get('name'), description=family.get('desc'),
+                                       label=family.get('label'))
         request_to_postgres(sql)
+
 
 def request_to_postgres(request):
     """
     request postgresql with sql requests as a string
     """
-    conn_string = "host='127.0.0.1' dbname='ikats' user='ikats' password='ikats' port='5432'"
+    conn_string = 'host={} port={} dbname={} user={} password={}'.format(DB.get('HOST'), DB.get('PORT'), DB.get('NAME'),
+                                                                         DB.get('USER'), DB.get('PASSWORD'))
     connection = None
     try:
         connection = psycopg2.connect(conn_string)
