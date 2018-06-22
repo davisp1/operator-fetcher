@@ -165,6 +165,15 @@ def format_catalog(catalog):
                     parameter['domain'] = parameter.get('domain').replace("'", "''")
             if 'default_value' not in parameter:
                 parameter['default_value'] = None
+            else:
+                if type(parameter.get('default_value')) is str:
+                    parameter['default_value'] = "\"{0}\"".format(parameter.get('default_value'))
+                elif type(parameter.get('default_value')) is bool:
+                    if parameter.get('default_value'):
+                        parameter['default_value'] = '"true"'
+                    else:
+                        parameter['default_value'] = '"false"'
+
 
     return catalog
 
