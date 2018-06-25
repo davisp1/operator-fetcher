@@ -89,7 +89,7 @@ VALUES
 
 def read_list():
     """
-    Reads the repo-list.yml file to get the url to operators
+    Reads the families.yml file to get name, label and description of operators families
     :return: the dict containing the yaml information
     """
     with open("families.yml", 'r') as input_stream:
@@ -128,22 +128,13 @@ def format_catalog(catalog):
         catalog['label'] = catalog['name']
     if 'description' not in catalog:
         catalog['description'] = catalog['name']
-    else:
-        # Double quotes in description to agree sql requests
-        catalog['description'] = catalog.get('description').replace("'", "''")
 
     def format_item(item):
         # create optional keys with default values if missing
         if 'label' not in item:
             item['label'] = item['name']
-        else:
-            # Double quotes in description to agree sql requests
-            item['label'] = item.get('label').replace("'", "''")
         if 'description' not in item:
             item['description'] = item['name']
-        else:
-            # Double quotes in description to agree sql requests
-            item['description'] = item.get('description').replace("'", "''")
 
     if 'inputs' in catalog:
         for input in catalog.get('inputs'):
@@ -156,25 +147,36 @@ def format_catalog(catalog):
             format_item(parameter)
             if 'domain' not in parameter:
                 parameter['domain'] = None
-            else:
-                # Double quotes in description to agree sql requests
-                if type(parameter.get('domain')) is list:
-                    parameter['domain'] = str(parameter.get('domain')).replace("'", "''")
-                else:
-                    # string case
-                    parameter['domain'] = parameter.get('domain').replace("'", "''")
+            elif type(eval(parameter.get('domain'))) is list:
+                parameter['domain'] = parameter.get('domain').replace("'", "\"")
             if 'default_value' not in parameter:
                 parameter['default_value'] = None
             else:
+                # string case
                 if type(parameter.get('default_value')) is str:
                     parameter['default_value'] = "\"{0}\"".format(parameter.get('default_value'))
                 elif type(parameter.get('default_value')) is bool:
+                    # boolean case
                     if parameter.get('default_value'):
-                        parameter['default_value'] = '"true"'
+                        parameter['default_value'] = 'true'
                     else:
-                        parameter['default_value'] = '"false"'
+                        parameter['default_value'] = 'false'
+
+    return catalog
 
 
+def replace_quotes(catalog):
+    """
+    Function that replace simple quote by double quotes in string values of a catalog recursively
+    """
+    for k, v in catalog.items():
+        if isinstance(v, list):
+            new_list = []
+            for obj in v:
+                new_list.append(replace_quotes(obj))
+            catalog[k] = new_list
+        elif isinstance(v, str):
+            catalog[k] = v.replace("'", "''")
     return catalog
 
 
@@ -182,6 +184,7 @@ def catalog_json_to_SQL(catalog):
     """
     Convert algorithm catalog definition from json to sql request
     """
+    catalog = replace_quotes(catalog)
     sql = algorithm.substitute(catalog)
     catalog['entry_point'] = '{}.{}'.format('ikats.algo', catalog.get('entry_point'))
     sql += implementation.substitute(catalog, visibility=catalog.get('visibility') if 'visibility' in catalog else True)
@@ -189,7 +192,9 @@ def catalog_json_to_SQL(catalog):
     if 'inputs' in catalog:
         for input in catalog.get('inputs'):
             sql += profile_item_IN.substitute(input,
-                                              name='{}_{}_{}'.format('input_', catalog.get('name'), input.get('name')),
+                                              name='{}_{}_{}'.format('in_',
+                                                                     catalog.get('name'),
+                                                                     input.get('name')),
                                               direction=0,
                                               dtype=1,
                                               index=index_profileitem,
@@ -198,7 +203,8 @@ def catalog_json_to_SQL(catalog):
     if 'parameters' in catalog:
         for parameter in catalog.get('parameters'):
             sql += profile_item_PARAM.substitute(parameter,
-                                                 name='{}_{}_{}'.format('parameter_', catalog.get('name'),
+                                                 name='{}_{}_{}'.format('par_',
+                                                                        catalog.get('name'),
                                                                         parameter.get('name')),
                                                  direction=0,
                                                  dtype=0,
@@ -208,7 +214,8 @@ def catalog_json_to_SQL(catalog):
     if 'outputs' in catalog:
         for output in catalog.get('outputs'):
             sql += profile_item_OUT.substitute(output,
-                                               name='{}_{}_{}'.format('output_', catalog.get('name'),
+                                               name='{}_{}_{}'.format('out_',
+                                                                      catalog.get('name'),
                                                                       output.get('name')),
                                                direction=1,
                                                dtype=1,
@@ -224,9 +231,12 @@ def delete_catalog_postgres():
     Delete data from catalogue databases
     """
     CATALOG_DATABASES_LIST = [
-        'catalogue_implementationdao_input_desc_items', 'catalogue_implementationdao_output_desc_items',
+        'catalogue_implementationdao_input_desc_items',
+        'catalogue_implementationdao_output_desc_items',
         'catalogue_profileitemdao',
-        'catalogue_implementationdao', 'catalogue_algorithmdao', 'catalogue_functionalfamilydao']
+        'catalogue_implementationdao',
+        'catalogue_algorithmdao',
+        'catalogue_functionalfamilydao']
     for db in CATALOG_DATABASES_LIST:
         request_to_postgres("DELETE from %s" % db)
 
@@ -236,8 +246,7 @@ def populate_catalog_families():
     Insert families in catalog
     """
     for family in FAMILIES:
-        sql = insert_family.substitute(name=family.get('name'), description=family.get('desc'),
-                                       label=family.get('label'))
+        sql = insert_family.substitute(family)
         request_to_postgres(sql)
 
 
@@ -263,13 +272,17 @@ def request_to_postgres(request):
 
 def process_operator_catalog(repo):
     """
-    Processing the catalog for a given operator
+    Processing the catalog for a given operator (main)
     """
 
     # extract catalog from catalog_def.json in given repo
     catalog_list_json = extract_catalog(repo)
 
     if catalog_list_json:
+
+        LOGGER.info("Processing catalog definition for operator : %s ..." % repo)
+
+        # to handle the case : several operators in same directory
         for catalog_json in catalog_list_json:
             format_catalog(catalog_json)
 
@@ -278,3 +291,8 @@ def process_operator_catalog(repo):
 
             # postgresql request
             request_to_postgres(sql)
+
+        LOGGER.info("Operator %s catalog processed with success." % repo)
+
+    else:
+        LOGGER.info("No catalog definition found for repo : %s" % repo)

@@ -201,7 +201,6 @@ catalog.delete_catalog_postgres()
 catalog.populate_catalog_families()
 try:
     res_catalog = list(map(catalog.process_operator_catalog, op_list))
-    LOGGER.info(res_catalog)
 except Exception as ex:
     pass
 
