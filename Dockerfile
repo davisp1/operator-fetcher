@@ -16,7 +16,6 @@ RUN apt-get update \
     python3-dev \
     build-essential \
  && easy_install3 pip \
- && apt-get clean \
  && rm -rf /var/lib/apt/lists/*
 RUN pip3 install psycopg2-binary
 
