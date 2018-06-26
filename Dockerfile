@@ -23,7 +23,7 @@ RUN pip3 install psycopg2-binary
 RUN mkdir -p /app/op /app/fetch-op /app/local
 ADD assets/main.py /app/
 ADD assets/catalog.py /app/
-ADD assets/families.yml /app/
+ADD assets/families.json /app/
 ADD assets/repo-list.yml /app/
 
 VOLUME /app/op
