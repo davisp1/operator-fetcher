@@ -25,11 +25,9 @@ FETCH_OP_PATH = "fetch-op"
 OP_PATH = "op"
 
 # postgres database connection infos
-# Review#176766 connection information shall be set using environment variables and set with docker
 DB = {
-    'NAME': 'ikats',
-    'USER': 'ikats',
-    'PASSWORD': 'ikats',
+    'USER': os.environ['DB_USER'],
+    'PASSWORD': os.environ['DB_PWD'],
     'HOST': os.environ['DB_HOST'],
     'PORT': int(os.environ['DB_PORT'])
 }
@@ -94,9 +92,8 @@ def read_families_list():
     Reads the families.yml file to get name, label and description of operators families
     :return: the dict containing the yaml information
     """
-    with open("families.yml", 'r') as input_stream:
-        families = yaml.load(input_stream)
-        return families
+    with open('families.json') as f:
+        return json.load(f)
 
 
 # Get families name,label and descriptions from families.yml
@@ -114,8 +111,11 @@ def extract_catalog(op_name):
     for file_path in os.listdir("fetch-op/op-%s" % op_name):
         if pattern.match(file_path):
             with open("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, file_path)) as cat_def:
-                # Review#176766 : Handle the case "JSON bad format" -> try/except
-                catalog_list.append(json.load(cat_def))
+                try:
+                    catalog_list.append(json.load(cat_def))
+                except:
+                    LOGGER.error("JSON bad format for file fetch-op/op-%s/%s" % (op_name, file_path))
+                    LOGGER.error("Operator %s is ignored" % op_name)
 
     return catalog_list
 
@@ -124,24 +124,25 @@ def format_catalog(catalog):
     """
     Add missing optional keys with default values in catalog
     """
+
+    catalog['entry_point'] = '{}{}'.format('ikats.algo.', catalog.get('entry_point'))
+
     # create optional keys with default values if missing
     if 'family' not in catalog or catalog['family'] not in [x.get('name') for x in FAMILIES]:
         catalog['family'] = 'Uncategorized'
     if 'label' not in catalog:
-        # Review#176766 : Also log a warning to indicate label is missing
-        catalog['label'] = catalog['name']        
+        catalog['label'] = catalog['name']
+        LOGGER.warning("Label is missing for operator %s" % catalog.get('name'))
     if 'description' not in catalog:
-        # Review#176766 : not really relevant
-        catalog['description'] = catalog['name']
+        catalog['description'] = 'no description'
 
     def format_item(item):
         # create optional keys with default values if missing
         if 'label' not in item:
-            # Review#176766 : Also log a warning to indicate label is missing
-            item['label'] = item['name']
+            item['label'] = item.get('name')
+            LOGGER.warning("Label is missing for item %s" % item.get('name'))
         if 'description' not in item:
-            # Review#176766 : not really relevant
-            item['description'] = item['name']
+            item['description'] = 'no description'
 
     if 'inputs' in catalog:
         for input in catalog.get('inputs'):
@@ -154,8 +155,8 @@ def format_catalog(catalog):
             format_item(parameter)
             if 'domain' not in parameter:
                 parameter['domain'] = None
-            elif type(eval(parameter.get('domain'))) is list:
-                # Review#176766 : eval is evil, consider using JSON
+            else:
+                # domain is considered as a list of string contained in a list
                 parameter['domain'] = parameter.get('domain').replace("'", "\"")
             if 'default_value' not in parameter:
                 parameter['default_value'] = None
@@ -195,9 +196,6 @@ def catalog_json_to_SQL(catalog):
     """
     catalog = replace_quotes(catalog)
     sql = algorithm.substitute(catalog)
-    catalog['entry_point'] = '{}{}'.format(
-        'ikats.algo.', catalog.get('entry_point'))
-    # Review#176766 : the part below should be in format_catalog, not converter
     sql += implementation.substitute(catalog, visibility=catalog.get(
         'visibility') if 'visibility' in catalog else True)
     index_profileitem = 0
@@ -205,10 +203,7 @@ def catalog_json_to_SQL(catalog):
         for input in catalog.get('inputs'):
             sql += profile_item_IN.substitute(
                 input,
-                name='{}_{}_{}'.format(
-                    catalog.get('name'),
-                    '_i_',
-                    input.get('name')),
+                name='{}_{}_{}'.format(catalog.get('name'), '_i_', input.get('name')),
                 direction=0,
                 dtype=1,
                 index=index_profileitem,
@@ -218,10 +213,7 @@ def catalog_json_to_SQL(catalog):
         for parameter in catalog.get('parameters'):
             sql += profile_item_PARAM.substitute(
                 parameter,
-                name='{}_{}_{}'.format(
-                    catalog.get('name'),
-                    '_p_',
-                    parameter.get('name')),
+                name='{}_{}_{}'.format(catalog.get('name'), '_p_', parameter.get('name')),
                 direction=0,
                 dtype=0,
                 index=index_profileitem,
@@ -231,10 +223,7 @@ def catalog_json_to_SQL(catalog):
         for output in catalog.get('outputs'):
             sql += profile_item_OUT.substitute(
                 output,
-                name='{}_{}_{}'.format(
-                    catalog.get('name'),
-                    '_o_',
-                    output.get('name')),
+                name='{}_{}_{}'.format(catalog.get('name'), '_o_', output.get('name')),
                 direction=1,
                 dtype=1,
                 index=index_profileitem,
@@ -272,8 +261,8 @@ def request_to_postgres(query):
     """
     Request postgresql with sql query as a string
     """
-    conn_string = 'host={} port={} dbname={} user={} password={}'.format(DB.get('HOST'), DB.get('PORT'), DB.get('NAME'),
-                                                                         DB.get('USER'), DB.get('PASSWORD'))
+    conn_string = 'host={} port={} user={} password={}'.format(DB.get('HOST'), DB.get('PORT'),
+                                                               DB.get('USER'), DB.get('PASSWORD'))
     connection = None
     try:
         connection = psycopg2.connect(conn_string)
@@ -288,19 +277,20 @@ def request_to_postgres(query):
             connection.close()
 
 
-def process_operator_catalog(repo):
+def process_operator_catalog(op):
     """
     Processing the catalog for a given operator (main)
+    :param op: name of the operator processed
+    :type op: str
     """
-    # Review#176766 What is the content of repo ? just a string ? missing docstring info
 
     # extract catalog from catalog_def.json in given repo
-    catalog_list_json = extract_catalog(repo)
+    catalog_list_json = extract_catalog(op)
 
     if catalog_list_json:
 
         LOGGER.info(
-            "Processing catalog definition for operator : %s ..." % repo)
+            "Processing catalog definition for operator : %s ..." % op)
 
         # to handle the case : several operators in same directory
         for catalog_json in catalog_list_json:
@@ -312,7 +302,7 @@ def process_operator_catalog(repo):
             # postgresql request
             request_to_postgres(sql)
 
-        LOGGER.info("Operator %s catalog processed with success." % repo)
+        LOGGER.info("Operator %s catalog processed with success." % op)
 
     else:
-        LOGGER.info("No catalog definition found for repo : %s" % repo)
+        LOGGER.info("No catalog definition found for repo : %s" % op)

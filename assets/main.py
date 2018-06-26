@@ -199,10 +199,7 @@ for operator_path in os.listdir(FETCH_OP_PATH):
 op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
 catalog.delete_catalog_postgres()
 catalog.populate_catalog_families()
-try:
-    res_catalog = list(map(catalog.process_operator_catalog, op_list))
-except Exception as ex:
-    pass
+list(map(catalog.process_operator_catalog, op_list))
 
 
 def show_summary():
