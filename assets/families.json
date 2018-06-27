@@ -16,18 +16,18 @@
   },
   {
     "name": "Preprocessing_TS__Reduction",
-    "description": "Set of pre{processing functions which reduce information of Time series",
-    "label": "Pre{Processing On Ts/Reduction"
+    "description": "Set of pre-processing functions which reduce information of Time series",
+    "label": "Pre-processing On Ts/Reduction"
   },
   {
     "name": "Preprocessing_TS__Cleaning",
-    "description": "Set of pre{processing functions which are cleaning the information of Time series.",
-    "label": "Pre{Processing On Ts/Cleaning"
+    "description": "Set of pre-processing functions which are cleaning the information of Time series.",
+    "label": "Pre-processing On Ts/Cleaning"
   },
   {
     "name": "Preprocessing_TS__Transforming",
-    "description": "Set of pre{processing functions which are transforming the Time series: not classified as cleaning, or reduction functions.",
-    "label": "Pre{Processing On Ts/Transforming"
+    "description": "Set of pre-processing functions which are transforming the Time series: not classified as cleaning, or reduction functions.",
+    "label": "Pre-processing On Ts/Transforming"
   },
   {
     "name": "Data_Modeling__Supervised_Learning",
@@ -41,7 +41,7 @@
   },
   {
     "name": "Uncategorized",
-    "description": "Family for algorithms with wrong or undefined family",
+    "description": "Family for algorithms with unknown or undefined family",
     "label": "Uncategorized"
   }
 ]

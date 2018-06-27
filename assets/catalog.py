@@ -10,12 +10,12 @@ from string import Template
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+FORMATTER = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
 
 # Create handler that will redirect log entries to STDOUT
 STDOUT_HANDLER = logging.StreamHandler()
 STDOUT_HANDLER.setLevel(logging.DEBUG)
-STDOUT_HANDLER.setFormatter(formatter)
+STDOUT_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(STDOUT_HANDLER)
 
 # Path to fetch operators repositories
@@ -89,14 +89,14 @@ VALUES
 
 def read_families_list():
     """
-    Reads the families.yml file to get name, label and description of operators families
-    :return: the dict containing the yaml information
+    Reads the families.json file to get name, label and description of operators families
+    :return: the dict containing the JSON information
     """
     with open('families.json') as f:
         return json.load(f)
 
 
-# Get families name,label and descriptions from families.yml
+# Get families name,label and descriptions from families.json
 FAMILIES = read_families_list()
 
 
@@ -114,8 +114,8 @@ def extract_catalog(op_name):
                 try:
                     catalog_list.append(json.load(cat_def))
                 except:
-                    LOGGER.error("JSON bad format for file fetch-op/op-%s/%s" % (op_name, file_path))
-                    LOGGER.error("Operator %s is ignored" % op_name)
+                    LOGGER.error("JSON bad format for op-%s/%s", op_name, file_path)
+                    LOGGER.warning("Operator %s is ignored", op_name)
 
     return catalog_list
 
@@ -125,14 +125,18 @@ def format_catalog(catalog):
     Add missing optional keys with default values in catalog
     """
 
-    catalog['entry_point'] = '{}{}'.format('ikats.algo.', catalog.get('entry_point'))
+
+    catalog['entry_point'] = "ikats.algo.%s" % catalog.get('entry_point', 'missing')
+
+    if "visibility" not in catalog:
+        catalog["visibility"] = True
 
     # create optional keys with default values if missing
     if 'family' not in catalog or catalog['family'] not in [x.get('name') for x in FAMILIES]:
         catalog['family'] = 'Uncategorized'
     if 'label' not in catalog:
         catalog['label'] = catalog['name']
-        LOGGER.warning("Label is missing for operator %s" % catalog.get('name'))
+        LOGGER.warning("Label is missing for operator %s", catalog.get('name'))
     if 'description' not in catalog:
         catalog['description'] = 'no description'
 
@@ -140,7 +144,7 @@ def format_catalog(catalog):
         # create optional keys with default values if missing
         if 'label' not in item:
             item['label'] = item.get('name')
-            LOGGER.warning("Label is missing for item %s" % item.get('name'))
+            LOGGER.warning("Label is missing for item %s", item.get('name'))
         if 'description' not in item:
             item['description'] = 'no description'
 
@@ -196,8 +200,7 @@ def catalog_json_to_SQL(catalog):
     """
     catalog = replace_quotes(catalog)
     sql = algorithm.substitute(catalog)
-    sql += implementation.substitute(catalog, visibility=catalog.get(
-        'visibility') if 'visibility' in catalog else True)
+    sql += implementation.substitute(catalog)
     index_profileitem = 0
     if 'inputs' in catalog:
         for input in catalog.get('inputs'):
@@ -261,6 +264,7 @@ def request_to_postgres(query):
     """
     Request postgresql with sql query as a string
     """
+
     conn_string = 'host={} port={} user={} password={}'.format(DB.get('HOST'), DB.get('PORT'),
                                                                DB.get('USER'), DB.get('PASSWORD'))
     connection = None
@@ -290,7 +294,7 @@ def process_operator_catalog(op):
     if catalog_list_json:
 
         LOGGER.info(
-            "Processing catalog definition for operator : %s ..." % op)
+            "Processing catalog definition for operator : %s ...", op)
 
         # to handle the case : several operators in same directory
         for catalog_json in catalog_list_json:
@@ -302,7 +306,7 @@ def process_operator_catalog(op):
             # postgresql request
             request_to_postgres(sql)
 
-        LOGGER.info("Operator %s catalog processed with success." % op)
+        LOGGER.info("Operator %s catalog processed with success.", op)
 
     else:
-        LOGGER.info("No catalog definition found for repo : %s" % op)
+        LOGGER.info("No catalog definition found for repo : %s", op)
