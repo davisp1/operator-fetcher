@@ -6,16 +6,19 @@ import os
 import shutil
 import re
 import logging
+import importlib
 from multiprocessing import Pool
+
+catalog = importlib.import_module('catalog')
 
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
-formatter = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
+FORMATTER = logging.Formatter('%(asctime)s:%(levelname)s:%(message)s')
 
 # Create another handler that will redirect log entries to STDOUT
 STDOUT_HANDLER = logging.StreamHandler()
 STDOUT_HANDLER.setLevel(logging.DEBUG)
-STDOUT_HANDLER.setFormatter(formatter)
+STDOUT_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(STDOUT_HANDLER)
 
 # Path to fetch operators repositories
@@ -101,6 +104,7 @@ def fetch_repo(repository_info):
         try:
             repo = git.Repo(extract_to_path)
             remote_ref = git_remote_ref(url, reference)
+
             if str(repo.head.commit) == remote_ref:
                 # No change since the last run
                 LOGGER.info("[%s] No changes detected" % op_name)
@@ -110,6 +114,8 @@ def fetch_repo(repository_info):
                             op_name, str(repo.head.commit), remote_ref)
                 repo.remotes[0].fetch()
                 repo.head.reference = repo.commit(reference)
+            commit_ref = str(repo.commit())
+            LOGGER.info("[%s] Ref: %s", op_name, reference)
 
         except git.exc.BadName:
             LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
@@ -124,6 +130,7 @@ def fetch_repo(repository_info):
                     to_path=extract_to_path,
                     branch=reference)
                 commit_ref = str(repo.commit())
+                LOGGER.info("[%s] Ref: %s", op_name, reference)
             except Exception as ex:
                 LOGGER.warning("[%s] Impossible to clone: \n%s", url, ex)
                 return
@@ -191,6 +198,12 @@ for operator_path in os.listdir(FETCH_OP_PATH):
         shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
                       ignore_errors=True)
         LOGGER.info("[%s] removed (unused for this run)", operator_name)
+
+# Processing catalog for operators
+op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
+catalog.delete_catalog_postgres()
+catalog.populate_catalog_families()
+list(map(catalog.process_operator_catalog, op_list))
 
 
 def show_summary():

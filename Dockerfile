@@ -12,11 +12,18 @@ RUN apt-get update \
     python3 \
     python3-git \
     python3-yaml \
+    python3-pip \
+    python3-dev \
+    build-essential \
+ && easy_install3 pip \
  && rm -rf /var/lib/apt/lists/*
+RUN pip3 install psycopg2-binary
 
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local
 ADD assets/main.py /app/
+ADD assets/catalog.py /app/
+ADD assets/families.json /app/
 ADD assets/repo-list.yml /app/
 
 VOLUME /app/op

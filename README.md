@@ -7,6 +7,7 @@ This operation consists in several parts :
 - Based on a repository list, fetch the operators to be used
 - Check the integrity of each operator
 - Build the operators tree
+- Update catalog in database
 - Make this tree available to other services
 
 ## Quickstart
@@ -21,6 +22,10 @@ To run the container
 
 ```bash
 docker run -it \
+   -e DB_HOST=${database_host} \
+   -e DB_PORT=${database_port} \
+   -e DB_USER=${database_username} \
+   -e DB_PWD=${database_password} \
    -v /path/to/cached/operators:/app/fetch-op \
    -v /path/to/shared/operators:/app/op \
    -v /path/to/local/operators:/app/local \
@@ -89,3 +94,12 @@ It may happens in the following cases:
 - URL is misspelled
 
 in this case, the operator is skipped
+
+### JSON bad format for op-xxxxx
+
+```text
+JSON bad format for op-xxxx/xxxxxx.json
+```
+
+The catalog_def.json contains errors
+In this case, the operator is ignored
