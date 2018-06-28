@@ -125,7 +125,6 @@ def format_catalog(catalog):
     Add missing optional keys with default values in catalog
     """
 
-
     catalog['entry_point'] = "ikats.algo.%s" % catalog.get('entry_point', 'missing')
 
     if "visibility" not in catalog:

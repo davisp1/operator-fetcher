@@ -20,7 +20,7 @@ RUN apt-get update \
 RUN pip3 install psycopg2-binary
 
 # Adding assets
-RUN mkdir -p /app/op /app/fetch-op /app/local
+RUN mkdir -p /app/op /app/fetch-op /app/local app/fam
 ADD assets/main.py /app/
 ADD assets/catalog.py /app/
 ADD assets/families.json /app/
@@ -28,6 +28,7 @@ ADD assets/repo-list.yml /app/
 
 VOLUME /app/op
 VOLUME /app/local
+VOLUME /app/fam
 
 # Do git clone no matter the validity of the certificate
 ENV GIT_SSL_NO_VERIFY true
