@@ -30,6 +30,15 @@ OP_PATH = "op"
 # Path to families list
 FAM_PATH = "fam"
 
+# firstly provides families.json to shared volume
+if not os.path.exists(FAM_PATH):
+    os.mkdir(FAM_PATH)
+try:
+    os.remove("%s/families.json" % FAM_PATH)
+except FileNotFoundError:
+    pass
+finally:
+    shutil.copy("families.json", FAM_PATH)
 
 def git_remote_ref(url, reference):
     """
@@ -207,14 +216,6 @@ op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
 catalog.delete_catalog_postgres()
 catalog.populate_catalog_families()
 list(map(catalog.process_operator_catalog, op_list))
-if not os.path.exists(FAM_PATH):
-    os.mkdir(FAM_PATH)
-try:
-    os.remove("%s/families.json" % FAM_PATH)
-except FileNotFoundError:
-    pass
-finally:
-    shutil.copy("families.json", FAM_PATH)
 
 
 def show_summary():
