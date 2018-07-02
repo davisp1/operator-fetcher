@@ -20,7 +20,7 @@ RUN apt-get update \
 RUN pip3 install psycopg2-binary
 
 # Adding assets
-RUN mkdir -p /app/op /app/fetch-op /app/local app/fam
+RUN mkdir -p /app/op /app/fetch-op /app/local /app/fam
 ADD assets/main.py /app/
 ADD assets/catalog.py /app/
 ADD assets/families.json /app/
