@@ -27,6 +27,18 @@ FETCH_OP_PATH = "fetch-op"
 # Path to prepared operators
 OP_PATH = "op"
 
+# Path to families list
+FAM_PATH = "fam"
+
+# firstly provides families.json to shared volume
+if not os.path.exists(FAM_PATH):
+    os.mkdir(FAM_PATH)
+try:
+    os.remove("%s/families.json" % FAM_PATH)
+except FileNotFoundError:
+    pass
+finally:
+    shutil.copy("families.json", FAM_PATH)
 
 def git_remote_ref(url, reference):
     """

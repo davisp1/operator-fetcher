@@ -1,23 +1,18 @@
 [
   {
+    "name": "Dataset Preparation__Import Export",
+    "description": "Import or export data in or from IKATS",
+    "label": "Dataset Preparation/Import Export"
+  },
+  {
+    "name": "Dataset Preparation__Dataset Management",
+    "description": "Operators for managing datasets and list of time series",
+    "label": "Dataset Preparation/Dataset Management"
+  },
+  {
     "name": "Data_Exploration",
     "description": "Functions exploring the data: searches, highlights some elements, ...",
     "label": "Data Exploration"
-  },
-  {
-    "name": "Stats__TS_Correlation_Computation",
-    "description": "Set of correlation functions, applied on Time series",
-    "label": "Stats/Ts Correlation Computation"
-  },
-  {
-    "name": "Stats__TS_Stats",
-    "description": "Set of functions about statistics features on Time series",
-    "label": "Stats/Statistics On Ts"
-  },
-  {
-    "name": "Preprocessing_TS__Reduction",
-    "description": "Set of pre-processing functions which reduce information of Time series",
-    "label": "Pre-processing On Ts/Reduction"
   },
   {
     "name": "Preprocessing_TS__Cleaning",
@@ -25,9 +20,29 @@
     "label": "Pre-processing On Ts/Cleaning"
   },
   {
+    "name": "Preprocessing_TS__Reduction",
+    "description": "Set of pre-processing functions which reduce information of Time series",
+    "label": "Pre-processing On Ts/Reduction"
+  },
+  {
     "name": "Preprocessing_TS__Transforming",
     "description": "Set of pre-processing functions which are transforming the Time series: not classified as cleaning, or reduction functions.",
     "label": "Pre-processing On Ts/Transforming"
+  },
+  {
+    "name": "Stats__TS_Stats",
+    "description": "Set of functions about statistics features on Time series",
+    "label": "Stats/Statistics On Ts"
+  },
+  {
+    "name": "Stats__TS_Correlation_Computation",
+    "description": "Set of correlation functions, applied on Time series",
+    "label": "Stats/Ts Correlation Computation"
+  },
+  {
+    "name": "Processing On Tables",
+    "description": "Set of functions manipulating table objects",
+    "label": "Processing On Tables"
   },
   {
     "name": "Data_Modeling__Supervised_Learning",
