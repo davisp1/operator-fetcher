@@ -55,11 +55,6 @@
     "label": "Data Modeling/Unsupervised Learning"
   },
   {
-    "name": "Developers",
-    "description": "Operators for developement purposes",
-    "label": "Developers"
-  },
-  {
     "name": "Uncategorized",
     "description": "Family for algorithms with unknown or undefined family",
     "label": "Uncategorized"
