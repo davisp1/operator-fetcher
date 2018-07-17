@@ -152,7 +152,10 @@ for repo in get_yaml_content("%s/fetch.yml" % CACHE_PATH):
     url = repo.get("url")
     op_name = extract_repo_name(url)
 
-    shutil.copytree("%s/%s" % (repository_path, op_name),
+    if os.path.exists("%s/%s" % (OP_PATH, op_name)):
+        LOGGER.error("Operator already exist with the same name %s", op_name)
+    else:
+        shutil.copytree("%s/%s" % (repository_path, op_name),
                     "%s/%s" % (OP_PATH, op_name), ignore=ignored)
     if os.path.exists("%s/LICENSE" % (repository_path)):
         shutil.copy("%s/LICENSE" % (repository_path),
