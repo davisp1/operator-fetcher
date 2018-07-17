@@ -4,6 +4,7 @@ import yaml
 import os
 import shutil
 import re
+import glob
 import logging
 import importlib
 import subprocess
@@ -49,7 +50,6 @@ def extract_repo_name(url):
     Extract the repository name from the url
     (commonly the last part of the URL without ".git" suffix and "op-" prefix)
     """
-
     return url.split("/")[-1].replace(".git", "").replace("op-", "")
 
 
@@ -137,8 +137,7 @@ ignored_patterns = [
     "tests",
     "tests/",
     "test_*.py",
-    "tests_*.py",
-    "catalog_def*.json"
+    "tests_*.py"
 ]
 ignored = shutil.ignore_patterns(*ignored_patterns)
 results = []
@@ -150,7 +149,7 @@ for repo in get_yaml_content("%s/fetch.yml" % CACHE_PATH):
     url = repo.get("url")
     op_name = extract_repo_name(url)
 
-    shutil.copytree("%s" % repository_path,
+    shutil.copytree("%s/%s" % (repository_path, op_name),
                     "%s/%s" % (OP_PATH, op_name), ignore=ignored)
     if os.path.exists("%s/LICENSE" % (repository_path)):
         shutil.copy("%s/LICENSE" % (repository_path),
@@ -158,9 +157,8 @@ for repo in get_yaml_content("%s/fetch.yml" % CACHE_PATH):
     if os.path.exists("%s/README.md" % (repository_path)):
         shutil.copy("%s/README.md" % (repository_path),
                     "%s/%s/" % (OP_PATH, op_name))
-    if os.path.exists("%s/*.json" % (repository_path)):
-        shutil.copy("%s/*.json" % (repository_path),
-                    "%s/%s/" % (OP_PATH, op_name))
+    for catalog_def_file in glob.glob("%s/*.json" % (repository_path)):
+        shutil.copy(catalog_def_file, "%s/%s/" % (OP_PATH, op_name))
 
     # Prepare versions manifest
     del(repo["cache"])
@@ -173,10 +171,10 @@ with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
 
 
 # Processing catalog for operators
-op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]
 catalog.delete_catalog_postgres()
 catalog.populate_catalog_families()
-list(map(catalog.process_operator_catalog, op_list))
+for repo in results:
+    catalog.process_operator_catalog(extract_repo_name(repo.get("url")))
 
 
 def show_summary():

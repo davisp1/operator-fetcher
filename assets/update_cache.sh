@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 repoCache=$1
 url=$2
 reference=$3
@@ -8,8 +7,7 @@ reference=$3
 CONNECTION_TIMEOUT=10
 
 USAGE(){
-cat <<EOF
-
+  cat <<EOF
 USAGE
 
   update_cache.sh <repoCache> <url> <reference>
