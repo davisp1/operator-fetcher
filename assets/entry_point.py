@@ -93,14 +93,17 @@ def fetch_repo(repository_info):
     """
 
     # Extract name from repository
-    url = repository_info.get('url')
+    url = repository_info.get('url',"no_url")
     reference = repository_info.get('ref')
 
     LOGGER.debug("Processing %s", url)
 
     # Update cache to the required reference
-    results = subprocess.run(["bash", "./update_cache.sh",
-                              CACHE_PATH, url, reference], stdout=subprocess.PIPE).stdout.decode()
+    cmd_to_run = ["bash", "./update_cache.sh", CACHE_PATH, url]
+    if reference:
+        cmd_to_run.append(reference)
+    results = subprocess.run(
+        cmd_to_run, stdout=subprocess.PIPE).stdout.decode()
 
     for line in results.split('\n'):
         if line.startswith("INFO: "):

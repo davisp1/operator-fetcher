@@ -8,6 +8,7 @@ CONNECTION_TIMEOUT=10
 
 USAGE(){
   cat <<EOF
+
 USAGE
 
   update_cache.sh <repoCache> <url> <reference>
@@ -63,13 +64,13 @@ EOL
             changeTxt="Update $oldCommit to $commit"
         fi
     fi
-    printf "INFO: [%s] Requested:%s|%s|folder:%s\n" "$url" "${reference:-HEAD}" "$changeTxt" "$folder"
+    printf "INFO: %s Requested:%s | %s\n" "$url" "${reference:-HEAD}" "$changeTxt"
 }
 
 # Get the commit sha1 from a specified git repo path and suffix by "_modified" if locally modified
 getCommitStatus(){
     commit=$(git rev-parse --short HEAD)
-    test $(git status --porcelain|wc -l) -gt 1 && commit="${commit}_modified"
+    test $(git status --porcelain|wc -l) -gt 0 && commit="${commit}_modified"
     echo $commit
 }
 
