@@ -31,4 +31,4 @@ ENV GIT_SSL_NO_VERIFY true
 
 # Starting component
 WORKDIR /app
-CMD python3 ./main.py
+CMD python3 ./entry_point.py
