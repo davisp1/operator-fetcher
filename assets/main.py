@@ -1,12 +1,12 @@
 #!/bin/python3
 
 import yaml
-import git
 import os
 import shutil
 import re
 import logging
 import importlib
+import subprocess
 from multiprocessing import Pool
 
 catalog = importlib.import_module('catalog')
@@ -21,8 +21,11 @@ STDOUT_HANDLER.setLevel(logging.DEBUG)
 STDOUT_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(STDOUT_HANDLER)
 
+# Max number of simultaneous repositories connections
+SIMULTANEOUS_CONNECTIONS = 30
+
 # Path to fetch operators repositories
-FETCH_OP_PATH = "fetch-op"
+CACHE_PATH = "/app/fetch-op"
 
 # Path to prepared operators
 OP_PATH = "op"
@@ -40,23 +43,6 @@ except FileNotFoundError:
 finally:
     shutil.copy("families.json", FAM_PATH)
 
-def git_remote_ref(url, reference):
-    """
-    Equivalent to git ls-remote function but returns only the sha1 of the remote reference
-    """
-    g = git.cmd.Git()
-    return g.ls_remote(url, reference).split('\n')[0].split('\t')[0]
-
-
-def read_list():
-    """
-    Reads the repo-list.yml file to get the url to operators
-    :return: the dict containing the yaml information
-    """
-    with open("repo-list.yml", 'r') as input_stream:
-        repositories = yaml.load(input_stream)
-        return repositories
-
 
 def extract_repo_name(url):
     """
@@ -67,149 +53,124 @@ def extract_repo_name(url):
     return url.split("/")[-1].replace(".git", "").replace("op-", "")
 
 
-def check_op_validity(op_name):
+def get_yaml_content(yaml_file):
+    """
+    Reads the yaml file and return the corresponding dict
+    :return: the dict containing the yaml information
+    """
+    with open(yaml_file, 'r') as input_stream:
+        return yaml.load(input_stream)
+
+
+def check_op_validity(repo_path, url):
     """
     Check operator repository validity
     """
 
     # Check if catalog definition is present in repository
     pattern = re.compile("catalog_def(_[0-9]{,2})?.json")
-    for file_path in os.listdir("%s/op-%s" % (FETCH_OP_PATH, op_name)):
+    for file_path in os.listdir(repo_path):
         if pattern.match(file_path):
             break
     else:
-        LOGGER.warning("[%s] No catalog file found.", op_name)
-
-    # Check if subfolder containing operator exists
-    if not os.path.isdir("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, op_name)):
-        raise Exception("[%s] sub-folder op-%s/%s not found",
-                        op_name, op_name, op_name)
+        LOGGER.warning("[%s] No catalog file found.", url)
 
 
 # Read repositories list
-REPO_LIST = read_list()
+REPO_LIST = get_yaml_content("/app/repo-list.yml")
+
+
+def get_repo_path(url):
+    """
+    URL is unique so use it to know where is the path of the cache
+    """
+    return subprocess.run(['bash', 'getMatchingCacheRepo.sh', CACHE_PATH, url], stdout=subprocess.PIPE).stdout
 
 
 def fetch_repo(repository_info):
+    """
+    Fetch the repository to the cache and build the operators list
+    """
+
     # Extract name from repository
     url = repository_info.get('url')
-    op_name = extract_repo_name(url)
-    reference = repository_info.get('ref', 'master')
-    extract_to_path = "%s/op-%s" % (FETCH_OP_PATH, op_name)
-    commit_ref = "no_info"
-    LOGGER.debug("[%s] Processing ...", op_name)
+    reference = repository_info.get('ref')
 
-    if url[0] == "/":
-        # Repository is a local path
-        try:
-            shutil.rmtree("%s/%s" % (FETCH_OP_PATH, op_name),
-                          ignore_errors=True)
-            shutil.copytree(url, "%s/op-%s" % (FETCH_OP_PATH, op_name))
-            commit_ref = "local_changes"
-        except Exception as e:
-            LOGGER.warning(
-                "[%s] Can't copy from path %s.\n%s", op_name, url, e)
-    else:
-        # Repository is a url path
+    LOGGER.debug("Processing %s", url)
 
-        # If repo already exists, check if there is any change
-        try:
-            repo = git.Repo(extract_to_path)
-            remote_ref = git_remote_ref(url, reference)
+    # Update cache to the required reference
+    results = subprocess.run(["bash", "./update_cache.sh",
+                              CACHE_PATH, url, reference], stdout=subprocess.PIPE).stdout.decode()
 
-            if str(repo.head.commit) == remote_ref:
-                # No change since the last run
-                LOGGER.info("[%s] No changes detected" % op_name)
-            else:
-                # Update HEAD to required reference
-                LOGGER.info("[%s] Change detected (%s -> %s)",
-                            op_name, str(repo.head.commit), remote_ref)
-                repo.remotes[0].fetch()
-                repo.head.reference = repo.commit(reference)
-            commit_ref = str(repo.commit())
-            LOGGER.info("[%s] Ref: %s", op_name, reference)
-
-        except git.exc.BadName:
-            LOGGER.warning("[%s] Reference %s is not valid. Keeping current reference." % (
-                op_name, reference))
-        except git.exc.NoSuchPathError:
-            LOGGER.info("[%s] New operator detected", op_name)
-
-            # Clone repository
-            try:
-                repo = git.Repo.clone_from(
-                    url=url,
-                    to_path=extract_to_path,
-                    branch=reference)
-                commit_ref = str(repo.commit())
-                LOGGER.info("[%s] Ref: %s", op_name, reference)
-            except Exception as ex:
-                LOGGER.warning("[%s] Impossible to clone: \n%s", url, ex)
-                return
-        except Exception as ex:
-            LOGGER.warning("[%s] Unknown exception: \n%s", url, ex)
-            return
+    for line in results.split('\n'):
+        if line.startswith("INFO: "):
+            LOGGER.info(line.replace("INFO: ", ""))
+        if line.startswith("DEBUG: "):
+            LOGGER.debug(line.replace("DEBUG: ", ""))
+        if line.startswith("ERROR: "):
+            LOGGER.error(line.replace("ERROR: ", ""))
+        if line.startswith("WARN: "):
+            LOGGER.warning(line.replace("WARN: ", ""))
 
     # Consistency check
     try:
-        check_op_validity(op_name)
+        check_op_validity(repository_path, url)
     except Exception:
         return
 
-    # Copy sources to build path
-    ignored_patterns = [
-        ".git",
-        "test",
-        "test/",
-        "tests",
-        "tests/",
-        "test_*.py",
-        "tests_*.py",
-        "catalog_def*.json"
-    ]
-    ignored = shutil.ignore_patterns(*ignored_patterns)
-    shutil.rmtree("%s/%s" % (OP_PATH, op_name),
-                  ignore_errors=True)
-    shutil.copytree("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, op_name),
-                    "%s/%s" % (OP_PATH, op_name),
-                    ignore=ignored)
-    if os.path.exists("%s/op-%s/LICENSE" % (FETCH_OP_PATH, op_name)):
-        shutil.copy("%s/op-%s/LICENSE" % (FETCH_OP_PATH, op_name),
-                    "%s/%s/" % (OP_PATH, op_name))
-    if os.path.exists("%s/op-%s/README.md" % (FETCH_OP_PATH, op_name)):
-        shutil.copy("%s/op-%s/README.md" % (FETCH_OP_PATH, op_name),
-                    "%s/%s/" % (OP_PATH, op_name))
-    if os.path.exists("%s/op-%s/*.json" % (FETCH_OP_PATH, op_name)):
-        shutil.copy("%s/op-%s/*.json" % (FETCH_OP_PATH, op_name),
-                    "%s/%s/" % (OP_PATH, op_name))
+# Remove previous update result
+try:
+    os.remove("%s/fetch.yml" % CACHE_PATH)
+except:
+    # If first run, nothing to remove
+    pass
 
-    repository_info["commit"] = commit_ref
-    return repository_info
+# Fetch repositories
+with Pool(SIMULTANEOUS_CONNECTIONS) as p:
+    p.map(fetch_repo, REPO_LIST)
 
-
+# Update active operators folder
+ignored_patterns = [
+    ".git",
+    "test",
+    "test/",
+    "tests",
+    "tests/",
+    "test_*.py",
+    "tests_*.py",
+    "catalog_def*.json"
+]
+ignored = shutil.ignore_patterns(*ignored_patterns)
 results = []
-with Pool(4) as p:
-    # Fetch repositories
-    results = p.map(fetch_repo, REPO_LIST)
+# Empty active operators before adding requested ones
+shutil.rmtree("%s/" % (OP_PATH), ignore_errors=True)
+# Add requested operators to active list
+for repo in get_yaml_content("%s/fetch.yml" % CACHE_PATH):
+    repository_path = "%s/%s" % (CACHE_PATH, repo.get("cache"))
+    url = repo.get("url")
+    op_name = extract_repo_name(url)
 
-# Strip failed jobs
-results = [x for x in results if x is not None]
+    shutil.copytree("%s" % repository_path,
+                    "%s/%s" % (OP_PATH, op_name), ignore=ignored)
+    if os.path.exists("%s/LICENSE" % (repository_path)):
+        shutil.copy("%s/LICENSE" % (repository_path),
+                    "%s/%s/" % (OP_PATH, op_name))
+    if os.path.exists("%s/README.md" % (repository_path)):
+        shutil.copy("%s/README.md" % (repository_path),
+                    "%s/%s/" % (OP_PATH, op_name))
+    if os.path.exists("%s/*.json" % (repository_path)):
+        shutil.copy("%s/*.json" % (repository_path),
+                    "%s/%s/" % (OP_PATH, op_name))
+
+    # Prepare versions manifest
+    del(repo["cache"])
+    results.append(repo)
+
 
 # Create Operators Version manifest
 with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
     yaml.dump(results, output_stream, default_flow_style=False)
 
-# Remove the unneeded repositories
-repo_list_build = [extract_repo_name(x["url"]) for x in results]
-repo_list_build.append("versions.yml")
-for operator_path in os.listdir(FETCH_OP_PATH):
-    operator_name = operator_path.replace('op-', '')
-    if operator_name not in repo_list_build:
-        shutil.rmtree("%s/%s" % (OP_PATH, operator_name),
-                      ignore_errors=True)
-        shutil.rmtree("%s/op-%s" % (FETCH_OP_PATH, operator_name),
-                      ignore_errors=True)
-        LOGGER.info("[%s] removed (unused for this run)", operator_name)
 
 # Processing catalog for operators
 op_list = [extract_repo_name(repo.get('url')) for repo in REPO_LIST]

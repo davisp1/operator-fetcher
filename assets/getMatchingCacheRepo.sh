@@ -6,7 +6,7 @@
 repoCache=$1
 url=$2
 
-for repo in $(ls ${repoCache} | grep -v versions.yml)
+for repo in $(ls ${repoCache} | grep -v .yml)
 do
   pushd ${repoCache}/$repo > /dev/null
   repoUrl=$(git remote get-url origin)

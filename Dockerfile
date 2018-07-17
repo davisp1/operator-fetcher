@@ -10,7 +10,6 @@ RUN apt-get update \
  && apt-get install -y \
     git \
     python3 \
-    python3-git \
     python3-yaml \
     python3-pip \
     python3-dev \
@@ -21,10 +20,7 @@ RUN pip3 install psycopg2-binary
 
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local /app/fam
-ADD assets/main.py /app/
-ADD assets/catalog.py /app/
-ADD assets/families.json /app/
-ADD assets/repo-list.yml /app/
+COPY assets/* /app/
 
 VOLUME /app/op
 VOLUME /app/local

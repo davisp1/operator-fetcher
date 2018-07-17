@@ -1,29 +1,31 @@
 #!/bin/bash
 
 
-url=$1
-reference=$2
+repoCache=$1
+url=$2
+reference=$3
+
+CONNECTION_TIMEOUT=10
 
 USAGE(){
 cat <<EOF
 
 USAGE
 
-  update_cache.sh <url> <reference>
+  update_cache.sh <repoCache> <url> <reference>
 
+  repoCache: Cache folder where operatorss are fetched
   url:       path to git repository to use
   reference: commit/branch/tag/relative reference to git commit to use
 
 EOF
 }
 
-if [[ $# -gt 2 ]]
+if [[ $# -gt 3 ]]
 then
     USAGE
     exit 1
 fi
-
-repoCache=/app/fetch-op
 
 # Try to get the remote
 repoFolder=$(bash getMatchingCacheRepo.sh ${repoCache} ${url})
@@ -34,10 +36,10 @@ cd ${repoCache}
 
 # check if connected or not (url is reachable)
 connectedStatus=0
-timeout 5 git ls-remote ${url} > /dev/null 2>&1
+timeout ${CONNECTION_TIMEOUT} git ls-remote ${url} > /dev/null 2>&1
 test $? -eq 0 && connectedStatus=1 || connectedStatus=0
 
-versions_file=${repoCache}/versions.yml
+versions_file=${repoCache}/fetch.yml
 
 # Display a status on screen and in versions.yml file
 writeStatus(){
@@ -107,7 +109,7 @@ updateToRef(){
         git remote add origin $(realpath ${url})
     else
         # This is a remote repository, try to fetch latest commits to be able to switch to it
-        test ${connectedStatus} -eq 1 && git fetch -q --all --prune --tags --recurse-submodules --jobs=4
+        test ${connectedStatus} -eq 1 && git fetch -q --all --prune --tags
         git checkout -q ${reference} 2> /dev/null || echo "ERROR: reference $reference not found in repo $url"
     fi
     
