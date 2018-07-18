@@ -10,7 +10,6 @@ RUN apt-get update \
  && apt-get install -y \
     git \
     python3 \
-    python3-git \
     python3-yaml \
     python3-pip \
     python3-dev \
@@ -21,10 +20,7 @@ RUN pip3 install psycopg2-binary
 
 # Adding assets
 RUN mkdir -p /app/op /app/fetch-op /app/local /app/fam
-ADD assets/main.py /app/
-ADD assets/catalog.py /app/
-ADD assets/families.json /app/
-ADD assets/repo-list.yml /app/
+COPY assets/* /app/
 
 VOLUME /app/op
 VOLUME /app/local
@@ -33,6 +29,9 @@ VOLUME /app/fam
 # Do git clone no matter the validity of the certificate
 ENV GIT_SSL_NO_VERIFY true
 
+# Number of seconds the app will wait until considering the repository not reachable
+ENV CONNECTION_TIMEOUT 5
+
 # Starting component
 WORKDIR /app
-CMD python3 ./main.py
+CMD python3 ./entry_point.py
