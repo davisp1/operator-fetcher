@@ -29,6 +29,9 @@ VOLUME /app/fam
 # Do git clone no matter the validity of the certificate
 ENV GIT_SSL_NO_VERIFY true
 
+# Number of seconds the app will wait until considering the repository not reachable
+ENV CONNECTION_TIMEOUT 5
+
 # Starting component
 WORKDIR /app
 CMD python3 ./entry_point.py

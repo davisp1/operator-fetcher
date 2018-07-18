@@ -23,7 +23,7 @@ STDOUT_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(STDOUT_HANDLER)
 
 # Max number of simultaneous repositories connections
-SIMULTANEOUS_CONNECTIONS = 30
+SIMULTANEOUS_CONNECTIONS = 15
 
 # Path to fetch operators repositories
 CACHE_PATH = "/app/fetch-op"

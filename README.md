@@ -26,12 +26,16 @@ docker run -it \
    -e DB_PORT=${database_port} \
    -e DB_USER=${database_username} \
    -e DB_PWD=${database_password} \
+   -e CONNECTION_TIMEOUT=5 \
    -v /path/to/cached/operators:/app/fetch-op \
    -v /path/to/shared/operators:/app/op \
    -v /path/to/local/operators:/app/local \
    -v /path/to/custom/repo-list.yml:/app/repo-list.yml \
    operator-fetcher
 ```
+
+`CONNECTION_TIMEOUT` corresponds to the number of seconds the app will wait until considering the repository not reachable.
+Default value is 5. Increase the value if you have a bad connection.
 
 ## Content of repo-list.yml
 

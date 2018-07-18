@@ -4,7 +4,7 @@ repoCache=$1
 url=$2
 reference=$3
 
-CONNECTION_TIMEOUT=10
+CONNECTION_TIMEOUT=${CONNECTION_TIMEOUT:-5}
 
 USAGE(){
   cat <<EOF
