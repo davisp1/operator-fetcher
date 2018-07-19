@@ -237,6 +237,8 @@ def delete_catalog_postgres():
     Delete data from catalogue databases
     """
     CATALOG_DATABASES_LIST = [
+        'custom_customizedparameterdao',
+        'custom_customizedalgodao',
         'catalogue_implementationdao_input_desc_items',
         'catalogue_implementationdao_output_desc_items',
         'catalogue_profileitemdao',
@@ -244,7 +246,8 @@ def delete_catalog_postgres():
         'catalogue_algorithmdao',
         'catalogue_functionalfamilydao']
     for db in CATALOG_DATABASES_LIST:
-        request_to_postgres("DELETE from %s" % db)
+        # delete all data and reset associated id sequence
+        request_to_postgres("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;" % db)
 
 
 def populate_catalog_families():
