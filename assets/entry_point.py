@@ -179,8 +179,9 @@ with open("%s/versions.yml" % OP_PATH, 'w') as output_stream:
 # Processing catalog for operators
 catalog.delete_catalog_postgres()
 catalog.populate_catalog_families()
-for repo in results:
-    catalog.process_operator_catalog(extract_repo_name(repo.get("url")))
+for repo in REPO_LIST:
+    if repo['url'] in [x['url'] for x in results]:
+        catalog.process_operator_catalog(extract_repo_name(repo.get("url")))
 
 
 def show_summary():
