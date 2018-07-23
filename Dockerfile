@@ -1,4 +1,4 @@
-FROM ubuntu:16.04
+FROM ubuntu:18.04
 
 LABEL license="Apache License, Version 2.0"
 LABEL copyright="CS Systèmes d'Information"
@@ -6,20 +6,19 @@ LABEL maintainer="contact@ikats.org"
 LABEL version="0.9.0"
 
 # Install dependencies
-RUN apt-get update \
- && apt-get install -y \
-    git \
-    python3 \
-    python3-yaml \
-    python3-pip \
-    python3-dev \
-    build-essential \
- && easy_install3 pip \
- && rm -rf /var/lib/apt/lists/*
-RUN pip3 install psycopg2-binary
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends \
+  git \
+  python3 \
+  python3-yaml \
+  python3-pip \
+  python3-dev \
+  build-essential && \
+  pip3 install psycopg2-binary && \
+  mkdir -p /app/op /app/fetch-op /app/local /app/fam && \
+  rm -rf /var/lib/apt/lists/*
 
 # Adding assets
-RUN mkdir -p /app/op /app/fetch-op /app/local /app/fam
 COPY assets/* /app/
 
 VOLUME /app/op
