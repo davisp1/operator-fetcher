@@ -108,8 +108,8 @@ updateToRef(){
         git remote add origin $(realpath ${url})
     else
         # This is a remote repository, try to fetch latest commits to be able to switch to it
-        test ${connectedStatus} -eq 1 && git fetch -q --all --prune --tags
-        git checkout -q ${reference} 2> /dev/null || echo "ERROR: reference $reference not found in repo $url"
+        test ${connectedStatus} -eq 1 && git fetch -q --all --prune --tags > /dev/null 2>&1 
+        git checkout -q ${reference} > /dev/null 2>&1 || echo "ERROR: reference $reference not found in repo $url"
     fi
     
     commit=$(getCommitStatus)
