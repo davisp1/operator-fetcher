@@ -18,11 +18,8 @@ STDOUT_HANDLER.setLevel(logging.DEBUG)
 STDOUT_HANDLER.setFormatter(FORMATTER)
 LOGGER.addHandler(STDOUT_HANDLER)
 
-# Path to fetch operators repositories
-FETCH_OP_PATH = "fetch-op"
-
 # Path to prepared operators
-OP_PATH = "op"
+OP_PATH = "/app/op"
 
 # postgres database connection infos
 DB = {
@@ -108,9 +105,9 @@ def extract_catalog(op_name):
 
     # Check if catalog definition is present in repository
     pattern = re.compile("catalog_def(_[0-9]{,2})?.json")
-    for file_path in os.listdir("fetch-op/op-%s" % op_name):
+    for file_path in os.listdir("%s/%s" % (OP_PATH, op_name)):
         if pattern.match(file_path):
-            with open("%s/op-%s/%s" % (FETCH_OP_PATH, op_name, file_path)) as cat_def:
+            with open("%s/%s/%s" % (OP_PATH, op_name, file_path)) as cat_def:
                 try:
                     catalog_list.append(json.load(cat_def))
                 except:
@@ -240,6 +237,8 @@ def delete_catalog_postgres():
     Delete data from catalogue databases
     """
     CATALOG_DATABASES_LIST = [
+        'custom_customizedparameterdao',
+        'custom_customizedalgodao',
         'catalogue_implementationdao_input_desc_items',
         'catalogue_implementationdao_output_desc_items',
         'catalogue_profileitemdao',
@@ -247,7 +246,8 @@ def delete_catalog_postgres():
         'catalogue_algorithmdao',
         'catalogue_functionalfamilydao']
     for db in CATALOG_DATABASES_LIST:
-        request_to_postgres("DELETE from %s" % db)
+        # delete all data and reset associated id sequence
+        request_to_postgres("TRUNCATE TABLE %s RESTART IDENTITY CASCADE;" % db)
 
 
 def populate_catalog_families():
