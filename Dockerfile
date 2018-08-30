@@ -9,6 +9,7 @@ LABEL version="0.10.0"
 RUN apt-get update && \
   apt-get install -y --no-install-recommends \
   git \
+  rsync \
   python3 \
   python3-yaml \
   python3-pip \
